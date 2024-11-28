@@ -1,0 +1,24 @@
+1. create user
+
+2 activate user (token value is sent through mailtrap)
+
+3. request authentication by logging into the authentication endpoint using email and password in json format
+
+save the token you get back
+
+4. whenever using one of the endpoints, use the following format
+(using the header Authorization Bearer), otherwise, you wont be given access
+curl -i -H "Authorization: Bearer STR73NMWAYXT25WAXLDBUMJDBI" http://localhost:4000/api/v1/healthcheck
+HTTP/1.1 200 OK
+Content-Type: application/json
+Vary: Authorization
+Date: Wed, 27 Nov 2024 22:07:47 GMT
+Content-Length: 123
+
+{
+    "status": "available",
+    "system_info": {
+        "environment": "development",
+        "version": "1.0.0"
+    }
+}

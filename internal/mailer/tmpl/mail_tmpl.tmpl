@@ -1,0 +1,43 @@
+{{define "subject"}}Welcome to the Comments Community!{{end}}
+
+{{define "PlainBody"}}
+Hi,
+
+Thanks for signing up for a Comments Community account, We're excited to have you on board!
+
+For future reference, your user ID number is {{.userID}}.
+Please send a request to `PUT /v1/users/activated` endpoint with the following JSON body to activate your account:
+{"token":"{{.activationToken}}"}
+
+Please note that this is a one-time use token and will expire in 3 days time.
+
+Thanks,
+
+The Comments Community Team
+{{end}}
+
+{{define "htmlBody"}}
+<!doctype html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+</head>
+
+<body>
+    <p>Hi,</p>
+    <p>Thanks for signing up for a Comments Community account. We're excited 
+       to have you on board!</p>
+    <p>For future reference, your user ID number is {{.userID}}.</p>
+    <p>Please send a request to <code>`PUT /v1/users/activated`</code> endpoint with the following JSON body to activate your account:
+    <pre><code>{"token":"{{.activationToken}}"}</code></pre>
+
+<p>Please note that this is a one-time use token and will expire in 3 days time.</p>
+    
+    <p>Thanks,</p>
+    <p>The Comments Community Team</p>
+</body>
+
+</html>
+{{end}}

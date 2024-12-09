@@ -6,6 +6,7 @@ import (
 	"flag"
 	"log/slog"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,6 +35,10 @@ type serverConfig struct {
 		password string
 		sender   string
 	}
+	//Step 3: parse trusted origins from command-line arguments
+	cors struct {
+		trustedOrigins []string
+	}
 }
 
 type applicationDependencies struct {
@@ -49,19 +54,25 @@ type applicationDependencies struct {
 }
 
 func main() {
+
 	var settings serverConfig
 
 	flag.IntVar(&settings.port, "port", 4000, "Server port")
 	flag.StringVar(&settings.environment, "env", "development", "Environment?(development|staging|production)")
-	flag.StringVar(&settings.db.dsn, "db-dsn", "postgres://bookclub:bookclub@localhost/bookclub?sslmode=disable", "PostgreSQL DSN")
+	flag.StringVar(&settings.db.dsn, "db-dsn", "postgres://final:final@localhost/final?sslmode=disable", "PostgreSQL DSN")
 	flag.Float64Var(&settings.limiter.rps, "limiter-rps", 2, "Rate Limiter maximum requests per second")
 	flag.IntVar(&settings.limiter.burst, "limiter-burst", 5, "Rate Limiter maximum burst")
 	flag.BoolVar(&settings.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
 	flag.StringVar(&settings.smtp.host, "smtp-host", "sandbox.smtp.mailtrap.io", "SMTP host")
 	flag.IntVar(&settings.smtp.port, "smtp-port", 2525, "SMTP port")
-	flag.StringVar(&settings.smtp.username, "smtp-username", "839422506900bd", "SMTP username")
-	flag.StringVar(&settings.smtp.password, "smtp-password", "ffb5cf13aa90aa", "SMTP password")
-	flag.StringVar(&settings.smtp.sender, "smtp-sender", "Readign Community <no-reply@book-club.rayray.net>", "SMTP sender")
+	flag.StringVar(&settings.smtp.username, "smtp-username", "3eeb8cf254893a", "SMTP username")
+	flag.StringVar(&settings.smtp.password, "smtp-password", "1ddfdab02da850", "SMTP password")
+	flag.StringVar(&settings.smtp.sender, "smtp-sender", "Reading Community <no-reply@book-club.rayray.net>", "SMTP sender")
+	//Step 3: CONT'D
+	flag.Func("cors-trusted-origins", "Trusted CORS origins (space separated)", func(val string) error {
+		settings.cors.trustedOrigins = strings.Fields(val)
+		return nil
+	})
 
 	flag.Parse()
 

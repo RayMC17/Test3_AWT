@@ -2,7 +2,10 @@ package main
 
 import (
 	"errors"
+
+	//"fmt"
 	"net/http"
+	// "strconv"
 	"time"
 
 	"github.com/RayMC17/bookclub-api/internal/data"
@@ -218,65 +221,4 @@ func (a *applicationDependencies) activateUserhandler(w http.ResponseWriter, r *
 		a.serverErrorResponse(w, r, err)
 		return
 	}
-}
-
-func (a *applicationDependencies) authenticateTokenHandler(w http.ResponseWriter, r *http.Request) {
-	var incomingData struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-
-	err := a.readJSON(w, r, &incomingData)
-	if err != nil {
-		a.badRequestResponse(w, r, err)
-		return
-	}
-
-	v := validator.New()
-	data.ValidateEmail(v, incomingData.Email)
-	data.ValidatePassword(v, incomingData.Password)
-
-	if !v.Valid() {
-		a.failedValidationResponse(w, r, v.Errors)
-		return
-	}
-
-	user, err := a.userModel.GetByEmail(incomingData.Email)
-	if err != nil {
-		switch {
-		case errors.Is(err, data.ErrRecordNotFound):
-			a.invalidCredentialResponse(w, r)
-		default:
-			a.serverErrorResponse(w, r, err)
-		}
-		return
-	}
-
-	matches, err := user.Password.Matches(incomingData.Password)
-	if err != nil {
-		a.serverErrorResponse(w, r, err)
-		return
-	}
-
-	if !matches {
-		a.invalidCredentialResponse(w, r)
-		return
-	}
-
-	token, err := a.tokenModel.New(int64(user.ID), 24*time.Hour, data.ScopeAuthentication)
-	if err != nil {
-		a.serverErrorResponse(w, r, err)
-		return
-	}
-
-	data := envelope{
-		"authentication_token": token,
-	}
-
-	err = a.writeJSON(w, http.StatusCreated, data, nil)
-	if err != nil {
-		a.serverErrorResponse(w, r, err)
-		return
-	}
-
 }

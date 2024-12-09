@@ -8,9 +8,10 @@ import (
 
 func (a *applicationDependencies) routes() http.Handler {
 	router := httprouter.New()
-
+	//router.HandlerFunc(http.MethodGet, "/api/v1/healthcheck", a.healthCheckHandler)
 	// Health check route
-	router.HandlerFunc(http.MethodGet, "/api/v1/healthcheck", a.requireActivatedUser(a.healthCheckHandler))
+	//router.HandlerFunc(http.MethodGet, "/api/v1/healthcheck", a.requireActivatedUser(a.healthCheckHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", a.healthCheckHandler)
 
 	// Books routes
 	router.HandlerFunc(http.MethodGet, "/api/v1/books", a.requireActivatedUser(a.listBooksHandler))         //done
@@ -39,11 +40,19 @@ func (a *applicationDependencies) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/api/v1/user", a.makeUserProfileHandler)                                       //done
 	router.HandlerFunc(http.MethodGet, "/api/v1/users/:id", a.requireActivatedUser(a.getUserProfileHandler))            //done
 	router.HandlerFunc(http.MethodPut, "/api/v1/users/activate", a.activateUserhandler)                                 //done
-	router.HandlerFunc(http.MethodPost, "/api/v1/authentocate/token", a.authenticateTokenHandler)                       //done
+	router.HandlerFunc(http.MethodPost, "/api/v1/authenticate/token", a.authenticateTokenHandler)                       //done
 	router.HandlerFunc(http.MethodGet, "/api/v1/users/:id/lists", a.requireActivatedUser(a.getUserReadingListsHandler)) //done
 	router.HandlerFunc(http.MethodGet, "/api/v1/users/:id/reviews", a.requireActivatedUser(a.getUserReviewsHandler))    //done
+	router.HandlerFunc(http.MethodPost, "/api/v1/tokens/password-reset", a.createPasswordResetTokenHandler)
+	router.HandlerFunc(http.MethodPut, "/api/v1/users/password", a.resetPasswordHandler)
 
+
+
+	//Step 2: Add in the enableCORS middleware
+	return a.recoverPanic(a.enableCORS(a.rateLimit(a.authenticate(router))))
 	// Wrap the entire router with global middleware
+
 	//return a.logRequest(a.rateLimit(a.recoverPanic(router)))
-	return a.recoverPanic(a.rateLimit(a.authenticate(router)))
+	//return a.recoverPanic(a.rateLimit(a.authenticate(router)))
+
 }

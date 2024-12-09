@@ -7,11 +7,14 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/RayMC17/bookclub-api/internal/validator"
 	"golang.org/x/crypto/bcrypt"
 )
+
+var ErrUserNotFound = errors.New("user not found")
 
 // User represents a user in the book club system.
 type User struct {
@@ -129,16 +132,20 @@ func (m *UserModel) Get(id int) (*User, error) {
 // Update modifies an existing user in the database.
 func (m *UserModel) Update(user *User) error {
 	query := `
-		UPDATE users
-		SET username = $1, email = $2, password_hash = $3, activated = $4, version = version + version
-		WHERE id = $5 AND version = $6
-		RETURNING version`
+    UPDATE users
+    SET username = $1, email = $2, password_hash = $3, activated = $4, version = version + 1
+    WHERE id = $5 AND version = $6
+    RETURNING version
+`
+	fmt.Printf("Executing update with user ID: %d and version: %d\n", user.ID, user.Version)
+
 	args := []interface{}{user.Username, user.Email, user.Password.hash, user.Activated, user.ID, user.Version}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&user.Version)
+	var newVersion int
+	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&newVersion)
 	if err != nil {
 		switch {
 		case err.Error() == `pq: duplicate key value violates unique key constraints "users_email_key"`:
@@ -149,6 +156,8 @@ func (m *UserModel) Update(user *User) error {
 			return err
 		}
 	}
+
+	user.Version = newVersion
 	return nil
 }
 
@@ -201,19 +210,55 @@ func (u *UserModel) GetForToken(tokenScope, tokenPlainText string) (*User, error
 	return &user, nil
 }
 
-func (u *UserModel) GetByEmail(email string) (*User, error) {
+func (u UserModel) GetByEmail(email string) (*User, error) {
 	query := `
 	SELECT id, createdat, username, email, password_hash, activated, version
 	FROM users
 	WHERE email = $1
-	`
+   `
+	var user User
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	err := u.DB.QueryRowContext(ctx, query, email).Scan(
+		&user.ID,
+		&user.CreatedAt,
+		&user.Username,
+		&user.Email,
+		&user.Password.hash,
+		&user.Activated,
+		&user.Version,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &user, nil
+}
+
+func (u *UserModel) GetByID(id int64) (*User, error) {
+	query := `
+	SELECT id, createdat, username, email, activated, version
+	FROM users
+	WHERE id = $1
+   `
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	var user User
-
-	err := u.DB.QueryRowContext(ctx, query, email).Scan(&user.ID, &user.CreatedAt, &user.Username, &email, &user.Password.hash, &user.Activated, &user.Version)
-
+	err := u.DB.QueryRowContext(ctx, query, id).Scan(
+		&user.ID,
+		&user.CreatedAt,
+		&user.Username,
+		&user.Email,
+		&user.Activated,
+		&user.Version,
+	)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):

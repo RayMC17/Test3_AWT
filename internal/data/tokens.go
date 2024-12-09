@@ -6,14 +6,19 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base32"
+	"errors"
 	"time"
 
 	"github.com/RayMC17/bookclub-api/internal/validator"
+	//"golang.org/x/crypto/bcrypt"
 )
+
+var ErrInvalidToken = errors.New("invalid or expired token")
 
 // purpose of the token
 const ScopeActivation = "Activation"
 const ScopeAuthentication = "Authentication"
+const ScopePasswordReset = "password-reset"
 
 // token definition
 type Token struct {
@@ -100,4 +105,35 @@ func (t *TokenModel) DeleteAllForUser(scope string, userID int64) error {
 
 	_, err := t.DB.ExecContext(ctx, query, args...)
 	return err
+}
+
+// Validate checks if a token is valid and returns the associated user ID if it is.
+func (m TokenModel) Validate(plainText string, scope string) (int64, error) {
+	var token Token
+
+	query := `
+		SELECT hash, user_id, expiry
+		FROM tokens
+		WHERE hash = $1
+		AND scope = $2
+		AND expiry > NOW()
+	`
+
+	// Hash the plaintext token
+	hashedToken := sha256.Sum256([]byte(plainText))
+
+	// Fetch token from the database
+	err := m.DB.QueryRow(query, hashedToken[:], scope).Scan(
+		&token.Hash,
+		&token.UserID,
+		&token.Expiry,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, ErrInvalidToken
+		}
+		return 0, err
+	}
+
+	return int64(token.UserID), nil
 }
